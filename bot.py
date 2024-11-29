@@ -17,6 +17,6 @@ def send_image():
     if chat_id and os.path.exists(image_path):
         try:
             with open(image_path, 'rb') as f:
-                bot.send_photo(chat_id, f, caption=f"Фото злостного нарушителя")
+                    bot.send_photo(chat_id, f, caption=f"Фото злостного нарушителя")
         except Exception as e:
             print(f'Ошибка при отправке фото: {e}')
