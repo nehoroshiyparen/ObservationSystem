@@ -1,18 +1,20 @@
 import telebot
 import os
 from dotenv import load_dotenv
+import time
+from datetime import datetime
 
 load_dotenv()
 
 bot_token = os.getenv('BOT_TOKEN')
 bot = telebot.TeleBot(bot_token)
-image_path = 'images/Photo.jpg'
 chat_id = None
 current_user = None
 
-def send_image():
+def send_image(image_path):
     if chat_id and os.path.exists(image_path):
         try:
+            current_time = datetime.now()
             with open(image_path, 'rb') as f:
                     bot.send_photo(chat_id, f, caption=f"Фото злостного нарушителя")
         except Exception as e:
