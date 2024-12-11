@@ -1,40 +1,61 @@
 import cv2
 import numpy as np
-import os
-import threading
-import time
+from inference_sdk import InferenceHTTPClient
+from datetime import datetime
+import base64
 from bot import send_image
+import time
+import os
 
-image_path = 'images/Photo.jpg'
+CLIENT = InferenceHTTPClient(
+    api_url="https://detect.roboflow.com",  # Это URL для API Roboflow
+    api_key="GNNR9dTrjnIDQlRNpYb1"  # Ваш API ключ
+)
+
+def image_to_base64(image_path):
+    with open(image_path, 'rb') as image_file:
+        return base64.b64encode(image_file.read()).decode('utf-8')
 
 def process_video(): 
-    hog = cv2.HOGDescriptor()
-    hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
-    cv2.startWindowThread()
     cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print('Не удалось открыть камеру')
+    if not cap.isOpened:
+        print('Не удалось получить доступ к камере')
         return
-    out = cv2.VideoWriter('output.avi', cv2.VideoWriter_fourcc(*'MJPG'), 15., (640, 480))
 
+    print('Запуск модели на устройстве OAK')
     while True:
         ret, frame = cap.read()
         if not ret:
             break
-        frame = cv2.resize(frame, (640, 480))
-        boxes, weights = hog.detectMultiScale(frame, winStride=(8, 8))
-        boxes = np.array([[x, y, x + w, y + h] for (x, y, w, h) in boxes])
-        for (xA, yA, xB, yB) in boxes:
-            cv2.rectangle(frame, (xA, yA), (xB, yB), (0, 255, 0), 2)
-            cv2.imwrite(image_path, frame)
-            send_image()
-            time.sleep(5)
-        out.write(frame.astype('uint8'))
-        #cv2.imshow('frame', frame)
+
+        current_time = datetime.now()
+        image_filename = f'Photo-{current_time.strftime("%Y-%m-%d_%H-%M-%S")}.jpg'
+        cv2.imwrite('images/' + image_filename, frame)
+
+        image_base64 = image_to_base64('images/' + image_filename)
+        
+        result = CLIENT.infer(image_base64, model_id="people-4evn7/1")
+        predictions = result.get('predictions', [])
+
+        for pred in predictions: 
+            x = int(pred['x'] - pred['width']/2)
+            y = int(pred['y'] - pred['height']/2)
+            w = int(pred['width'])
+            h = int(pred['height'])
+            confidence = pred['confidence']
+
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.putText(frame, f'Conf: {confidence:.2f}', (x, y - 10), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
+
+            cv2.imwrite(f'images/Photo-{current_time.strftime("%Y-%m-%d_%H-%M-%S")}-processed.jpg', frame)
+            send_image(f'images/Photo-{current_time.strftime("%Y-%m-%d_%H-%M-%S")}-processed.jpg')
+        
+        os.remove('images/' + image_filename)
+        time.sleep(5)
+    
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-    
-    cap.release()
+
     cv2.destroyAllWindows()
 
 def run_video():

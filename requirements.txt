@@ -1,0 +1,6 @@
+inference_sdk==0.29.2
+numpy==2.2.0
+opencv_python==4.10.0.84
+opencv_python_headless==4.10.0.84
+pyTelegramBotAPI==4.25.0
+python-dotenv==1.0.1

@@ -1,5 +1,3 @@
-import os 
-import subprocess
 from bot import run_bot
 from observation import run_video
 import threading
